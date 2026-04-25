@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Leaderboard - Project Polis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="auth.js"></script>
+  <style>
+    .page-container { max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
+    .leaderboard-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+    .hero-card {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(0,0,0,0.2); border: 1px solid var(--border-light);
+      padding: 1.5rem; border-radius: var(--radius-lg); transition: transform 0.3s;
+    }
+    .hero-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .rank { font-size: 1.5rem; font-weight: 700; width: 40px; color: var(--text-muted); }
+    .rank-1 { color: #f59e0b; }
+    .rank-2 { color: #94a3b8; }
+    .rank-3 { color: #d97706; }
+    .hero-info h3 { color: var(--text-main); font-size: 1.2rem; }
+    .hero-info p { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+    .points { background: rgba(59, 130, 246, 0.1); color: var(--primary); padding: 0.5rem 1rem; border-radius: 99px; font-weight: 600; }
+  </style>
+</head>
+<body style="background-image: none; background-color: var(--bg-body);">
+  <nav class="navbar glass-effect" id="navbar">
+    <div class="navbar-container">
+      <div class="brand">
+        <div class="brand-logo">P</div>
+        <span class="brand-title">Project Polis</span>
+      </div>
+      <div class="nav-links" style="display: flex; gap: 1.5rem; align-items: center; margin-left: 2rem; margin-right: auto;">
+        <a href="index.html" class="nav-link">Map</a>
+        <a href="dashboard.html" class="nav-link">Analytics</a>
+        <a href="leaderboard.html" class="nav-link active">Leaderboard</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+      <div class="auth-wrapper" id="auth-wrapper" style="display: flex; gap: 0.75rem; align-items: center; margin-left: 1rem;"></div>
+    </div>
+  </nav>
+
+  <main class="page-container">
+    <h1 style="color: var(--text-main); font-size: 2rem;">🏆 Civic Heroes</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Top citizens contributing to community improvement.</p>
+    
+    <div class="leaderboard-list glass-effect" id="leaderboard-list" style="padding: 2rem; border-radius: 16px;">
+      <!-- Injected via JS -->
+    </div>
+  </main>
+  
+  <script>
+    if (localStorage.getItem('polis_theme') === 'light') document.body.classList.add('light-theme');
+    
+    // Dynamic Leaderboard Logic
+    const savedState = localStorage.getItem('polis_state');
+    const state = savedState ? JSON.parse(savedState) : { issues: [] };
+    
+    const scores = {};
+    
+    // Default heroes to ensure the board is never empty
+    scores['Sarah Jenkins'] = { reports: 14, resolved: 8, pts: 1250 };
+    scores['Raj Patel'] = { reports: 9, resolved: 6, pts: 940 };
+    scores['Elena Rodriguez'] = { reports: 11, resolved: 3, pts: 880 };
+    scores['Michael Chang'] = { reports: 5, resolved: 4, pts: 620 };
+    
+    // Aggregate real user reports
+    state.issues.forEach(i => {
+      const author = i.author || 'Anonymous Citizen';
+      if (author === 'Anonymous Citizen') return;
+      
+      if (!scores[author]) {
+        scores[author] = { reports: 0, resolved: 0, pts: 0 };
+      }
+      
+      scores[author].reports++;
+      scores[author].pts += 10; // 10 pts for reporting
+      
+      if(i.status === 'resolved') {
+        scores[author].resolved++;
+        scores[author].pts += 40; // 40 pts if it gets resolved
+      }
+    });
+    
+    // Sort
+    const sortedHeroes = Object.keys(scores).map(name => ({
+      name,
+      ...scores[name]
+    })).sort((a,b) => b.pts - a.pts);
+    
+    const container = document.getElementById('leaderboard-list');
+    let html = '';
+    
+    sortedHeroes.forEach((hero, index) => {
+      let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+      
+      let badges = '';
+      if(hero.reports >= 10) badges += '<span title="Eagle Eye: Reported 10+ Issues">🦅</span>';
+      if(hero.resolved >= 5) badges += '<span title="Problem Solver: 5+ Resolved Issues">🛠️</span>';
+      if(index === 0) badges += '<span title="Top Contributor">👑</span>';
+      
+      html += `
+      <div class="hero-card">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+          <div class="rank ${rankClass}">#${index + 1}</div>
+          <div class="hero-info">
+            <h3>${hero.name} <span style="font-size:1.1rem; margin-left:0.5rem;">${badges}</span></h3>
+            <p>Reported ${hero.reports} issues • ${hero.resolved} resolved</p>
+          </div>
+        </div>
+        <div class="points">${hero.pts.toLocaleString()} pts</div>
+      </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+  </script>
+  
+  <button class="global-scroll-btn" onclick="window.scrollBy({top: 500, behavior: 'smooth'})" title="Scroll Down">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+</body>
+</html>

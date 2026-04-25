@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Polis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Leaflet Maps CSS and JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="auth.js"></script>
+</head>
+<body>
+  <!-- Premium Navbar -->
+  <nav class="navbar glass-effect" id="navbar">
+    <div class="navbar-container">
+      <div class="brand">
+        <div class="brand-logo">P</div>
+        <span class="brand-title">Project Polis</span>
+      </div>
+
+      <div class="nav-links" style="display: flex; gap: 1.5rem; align-items: center; margin-left: 2rem; margin-right: auto;">
+        <a href="index.html" class="nav-link active">Map</a>
+        <a href="dashboard.html" class="nav-link">Analytics</a>
+        <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+      
+      <input type="text" id="global-search" placeholder="Search issues, zones..." style="padding: 0.5rem 1.25rem; border-radius: 99px; border: 1px solid var(--border-light); background: rgba(255,255,255,0.4); outline: none; font-size: 0.85rem; width: 250px; font-family: inherit; transition: all 0.2s; color: var(--text-main);" onfocus="this.style.background='var(--bg-card)'" onblur="this.style.background='rgba(255,255,255,0.4)'">
+
+      <div class="auth-wrapper" id="auth-wrapper" style="display: flex; gap: 0.75rem; align-items: center; margin-left: 1rem;">
+      </div>
+    </div>
+  </nav>
+
+  <!-- Summary Metrics Strip -->
+  <div class="metrics-strip glass-effect">
+    <div class="metric">
+      <span class="metric-label">Total Issues</span>
+      <span class="metric-value" id="metric-total">0</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Resolution Rate</span>
+      <span class="metric-value" id="metric-rate">0%</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">High Density Zone</span>
+      <span class="metric-value" id="metric-zone">-</span>
+    </div>
+    <div class="metric">
+      <span class="metric-label">Dominant Category</span>
+      <span class="metric-value" id="metric-category">-</span>
+    </div>
+  </div>
+
+  <!-- Main Application Area -->
+  <main class="app-container">
+    
+    <!-- Map View -->
+    <section id="map-view" class="view-section active" style="position: relative;">
+      
+      <!-- Apple Maps-style Floating Location Selector -->
+      <div class="location-selector glass-effect">
+        <select id="select-country" class="loc-select">
+          <option value="" disabled selected>Country</option>
+          <option value="India">India</option>
+        </select>
+        <select id="select-state" class="loc-select" disabled>
+          <option value="" disabled selected>State</option>
+        </select>
+        <select id="select-city" class="loc-select" disabled>
+          <option value="" disabled selected>City</option>
+        </select>
+        <select id="select-area" class="loc-select" disabled>
+          <option value="" disabled selected>Area</option>
+        </select>
+      </div>
+
+      <div id="map-container" style="z-index: 1;"></div>
+      <div class="map-controls glass-effect">
+        <button id="toggle-satellite" class="icon-btn" title="Toggle Satellite View">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20z"></path><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        </button>
+        <button id="locate-me" class="icon-btn" title="My Location">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22l10-4 10 4L12 2z"/></svg>
+        </button>
+        <button id="zoom-in" class="icon-btn" title="Zoom In">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button id="zoom-out" class="icon-btn" title="Zoom Out">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+        </button>
+        <button id="recenter-map" class="icon-btn" title="Recenter">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Kanban View -->
+    <section id="kanban-view" class="view-section" style="margin-top: 2rem;">
+      <h2 style="color: var(--text-main); margin-bottom: 1rem; font-size: 1.5rem;">Civic Issues Pipeline</h2>
+      <div class="kanban-board">
+        <div class="kanban-column" data-status="new">
+          <div class="kanban-header">
+            <h3>New</h3>
+            <span class="count glass-badge" id="count-new">0</span>
+          </div>
+          <div class="kanban-cards" id="col-new"></div>
+        </div>
+        
+        <div class="kanban-column" data-status="progress">
+          <div class="kanban-header">
+            <h3>In Progress</h3>
+            <span class="count glass-badge" id="count-progress">0</span>
+          </div>
+          <div class="kanban-cards" id="col-progress"></div>
+        </div>
+        
+        <div class="kanban-column" data-status="resolved">
+          <div class="kanban-header">
+            <h3>Resolved <span class="verified-badge" title="Official Resolution">✓</span></h3>
+            <span class="count glass-badge" id="count-resolved">0</span>
+          </div>
+          <div class="kanban-cards" id="col-resolved"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Slide-in Issue Submission Panel -->
+  <div id="overlay" class="overlay"></div>
+  <aside id="submission-panel" class="slide-panel glass-effect">
+    <div class="panel-header">
+      <h2>Report Civic Issue</h2>
+      <button class="icon-btn close-panel" id="close-panel">✖</button>
+    </div>
+    <div class="panel-body">
+      <div class="coord-display">
+        📍 Location Selected: <span id="draft-coords">X: 0, Y: 0</span>
+      </div>
+      <form id="issue-form">
+        <div class="form-group">
+          <label>Issue Title</label>
+          <input type="text" id="issue-title" placeholder="e.g. Broken Streetlight" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <div class="category-grid" id="category-selector">
+            <div class="category-option active" data-cat="infrastructure">
+              <span class="cat-icon">🏗️</span> Infrastructure
+            </div>
+            <div class="category-option" data-cat="sanitation">
+              <span class="cat-icon">🗑️</span> Sanitation
+            </div>
+            <div class="category-option" data-cat="safety">
+              <span class="cat-icon">🛡️</span> Safety
+            </div>
+            <div class="category-option" data-cat="greenery">
+              <span class="cat-icon">🌳</span> Greenery
+            </div>
+            <div class="category-option" data-cat="potholes">
+              <span class="cat-icon">🕳️</span> Potholes
+            </div>
+          </div>
+          <div id="category-description" class="category-desc">
+            Report damaged public property, broken bridges, or structural hazards.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="issue-desc" rows="3" placeholder="Provide more details..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Attach Photo</label>
+          <input type="file" id="issue-photo" accept="image/*" style="width: 100%; font-size: 0.8rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px; border: 1px dashed var(--border-light); color: var(--text-muted);">
+          <small style="color: var(--cat-greenery); font-size: 0.75rem; display: block; margin-top: 0.35rem;">✨ AI verification enabled for image authenticity.</small>
+        </div>
+        <button type="submit" class="btn-primary w-full" style="margin-top: 1rem;">Submit Report</button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- Feedback Floating Button -->
+  <button id="btn-feedback" class="btn-primary" style="position: fixed; bottom: 2rem; left: 2rem; z-index: 999; display: flex; align-items: center; gap: 0.5rem; border-radius: 99px;">
+    ⭐ Rate Us
+  </button>
+
+  <!-- Feedback Modal -->
+  <div id="feedback-modal" class="feedback-modal glass-effect">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+      <h2 style="font-size: 1.15rem; color: var(--text-main);">We value your feedback!</h2>
+      <button class="icon-btn" id="close-feedback">✖</button>
+    </div>
+    <form id="feedback-form">
+      <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem;" id="star-rating">
+        <span class="star" data-val="1">★</span>
+        <span class="star" data-val="2">★</span>
+        <span class="star" data-val="3">★</span>
+        <span class="star" data-val="4">★</span>
+        <span class="star" data-val="5">★</span>
+      </div>
+      <div class="form-group">
+        <textarea id="feedback-text" rows="3" placeholder="Tell us about your experience..." required style="width: 100%; border-radius: var(--radius-md); padding: 1rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-light); box-shadow: inset 4px 4px 10px rgba(0,0,0,0.05), inset -4px -4px 10px rgba(255,255,255,0.5); outline: none; resize: none; font-family: inherit; font-size: 0.85rem;"></textarea>
+      </div>
+      <button type="submit" class="btn-primary w-full" style="margin-top: 1rem;">Submit Feedback</button>
+    </form>
+    <div id="feedback-success" class="hidden" style="text-align: center; color: var(--cat-greenery); font-weight: 600; padding: 2rem 0; font-size: 1.1rem;">
+      ✨ Thank you!
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  
+  <button class="global-scroll-btn" onclick="window.scrollBy({top: 500, behavior: 'smooth'})" title="Scroll Down">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+</body>
+</html>

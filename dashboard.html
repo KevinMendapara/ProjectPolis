@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - Project Polis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    .dashboard-container { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+    .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; }
+    .chart-card { background: rgba(0,0,0,0.2); padding: 2rem; border-radius: var(--radius-lg); border: 1px solid var(--border-light); }
+  </style>
+</head>
+<body style="background-image: none; background-color: var(--bg-body);">
+  <nav class="navbar glass-effect" id="navbar">
+    <div class="navbar-container">
+      <div class="brand">
+        <div class="brand-logo">P</div>
+        <span class="brand-title">Project Polis</span>
+      </div>
+      <div class="nav-links" style="display: flex; gap: 1.5rem; align-items: center; margin-left: 2rem; margin-right: auto;">
+        <a href="index.html" class="nav-link">Map</a>
+        <a href="dashboard.html" class="nav-link active">Analytics</a>
+        <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+        <a href="settings.html" class="nav-link">Settings</a>
+      </div>
+      <div class="auth-wrapper" id="auth-wrapper" style="display: flex; gap: 0.75rem; align-items: center; margin-left: 1rem;"></div>
+    </div>
+  </nav>
+
+  <main class="dashboard-container">
+    <h1 style="color: var(--text-main); font-size: 2rem;">City Analytics Dashboard</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Real-time breakdown of civic issues.</p>
+    
+    <div class="charts-grid">
+      <div class="chart-card glass-effect" style="height: 350px;">
+        <h3 style="color: var(--text-main); margin-bottom: 1rem;">Issues by Category</h3>
+        <canvas id="categoryChart"></canvas>
+      </div>
+      <div class="chart-card glass-effect" style="height: 350px;">
+        <h3 style="color: var(--text-main); margin-bottom: 1rem;">Resolution Status</h3>
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+    
+    <div class="chart-card glass-effect" style="margin-top: 2rem; height: 400px;">
+      <h3 style="color: var(--text-main); margin-bottom: 1rem;">Monthly Issue Analysis</h3>
+      <canvas id="monthlyLineChart"></canvas>
+    </div>
+    
+    <div class="chart-card glass-effect" style="margin-top: 2rem;">
+      <h3 style="color: var(--text-main); margin-bottom: 1rem;">Detailed Report: Recently Resolved Issues</h3>
+      <div id="resolved-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    if (localStorage.getItem('polis_theme') === 'light') document.body.classList.add('light-theme');
+    
+    // Load state from localStorage
+    const savedState = localStorage.getItem('polis_state');
+    const state = savedState ? JSON.parse(savedState) : { issues: [] };
+    
+    const catCounts = { infrastructure: 0, sanitation: 0, safety: 0, greenery: 0, potholes: 0 };
+    const statusCounts = { new: 0, progress: 0, resolved: 0 };
+    
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthlyData = {};
+    const resolvedIssuesList = [];
+    
+    state.issues.forEach(i => {
+      if(catCounts[i.category] !== undefined) catCounts[i.category]++;
+      if(statusCounts[i.status] !== undefined) statusCounts[i.status]++;
+      
+      const d = new Date(i.date || Date.now());
+      const mKey = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      
+      if(!monthlyData[mKey]) monthlyData[mKey] = { total: 0, resolved: 0 };
+      monthlyData[mKey].total++;
+      if(i.status === 'resolved') {
+        monthlyData[mKey].resolved++;
+        resolvedIssuesList.push(i);
+      }
+    });
+
+    // Chart Global Config
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif';
+    
+    const commonOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.9)',
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          padding: 12,
+          cornerRadius: 8,
+          boxPadding: 6
+        }
+      }
+    };
+    
+    new Chart(document.getElementById('categoryChart'), {
+      type: 'pie',
+      data: {
+        labels: ['Infrastructure', 'Sanitation', 'Safety', 'Greenery', 'Potholes'],
+        datasets: [{
+          data: [catCounts.infrastructure, catCounts.sanitation, catCounts.safety, catCounts.greenery, catCounts.potholes],
+          backgroundColor: ['#007aff', '#ff9500', '#ff3b30', '#34c759', '#af52de'],
+          borderWidth: 2,
+          borderColor: localStorage.getItem('polis_theme') === 'light' ? '#ffffff' : '#1e1e1e',
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('statusChart'), {
+      type: 'bar',
+      data: {
+        labels: ['New', 'In Progress', 'Resolved'],
+        datasets: [{
+          label: 'Total Issues',
+          data: [statusCounts.new, statusCounts.progress, statusCounts.resolved],
+          backgroundColor: ['rgba(0, 122, 255, 0.8)', 'rgba(255, 149, 0, 0.8)', 'rgba(52, 199, 89, 0.8)'],
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        ...commonOptions,
+        plugins: { ...commonOptions.plugins, legend: { display: false } },
+        scales: { 
+          y: { beginAtZero: true, grid: { color: 'rgba(150, 150, 150, 0.1)' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    const sortedMonths = Object.keys(monthlyData).sort((a, b) => new Date("1 " + a) - new Date("1 " + b));
+    const totalsByMonth = sortedMonths.map(m => monthlyData[m].total);
+    const resolvedByMonth = sortedMonths.map(m => monthlyData[m].resolved);
+
+    new Chart(document.getElementById('monthlyLineChart'), {
+      type: 'line',
+      data: {
+        labels: sortedMonths,
+        datasets: [
+          {
+            label: 'Total Issues Reported',
+            data: totalsByMonth,
+            borderColor: '#007aff',
+            backgroundColor: 'rgba(0, 122, 255, 0.1)',
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: 'Issues Resolved',
+            data: resolvedByMonth,
+            borderColor: '#34c759',
+            backgroundColor: 'rgba(52, 199, 89, 0.1)',
+            fill: true,
+            tension: 0.4
+          }
+        ]
+      },
+      options: {
+        ...commonOptions,
+        plugins: { ...commonOptions.plugins, legend: { position: 'top', align: 'end', labels: { usePointStyle: true } } },
+        scales: { 
+          y: { beginAtZero: true, grid: { color: 'rgba(150, 150, 150, 0.1)' } },
+          x: { grid: { display: false } }
+        },
+        interaction: { mode: 'index', intersect: false }
+      }
+    });
+
+    const resolvedContainer = document.getElementById('resolved-list');
+    if (resolvedIssuesList.length === 0) {
+      resolvedContainer.innerHTML = '<p style="color: var(--text-muted);">No issues have been resolved yet.</p>';
+    } else {
+      resolvedIssuesList.sort((a,b) => b.date - a.date).forEach(iss => {
+        const d = new Date(iss.date || Date.now());
+        const dateStr = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        const bg = localStorage.getItem('polis_theme') === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)';
+        resolvedContainer.innerHTML += `
+          <div style="padding: 1rem; background: ${bg}; border-radius: 12px; border: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="color: var(--text-main); margin-bottom: 0.25rem;">${iss.title}</h4>
+              <span style="font-size: 0.85rem; color: var(--text-muted);">📍 ${iss.zone} &nbsp;•&nbsp; 📅 ${dateStr}</span>
+            </div>
+            <span style="color: #34c759; font-weight: 600; font-size: 0.85rem; background: rgba(52, 199, 89, 0.15); padding: 0.3rem 0.8rem; border-radius: 99px; border: 1px solid rgba(52, 199, 89, 0.3);">✓ Resolved</span>
+          </div>
+        `;
+      });
+    }
+  </script>
+  
+  <button class="global-scroll-btn" onclick="window.scrollBy({top: 500, behavior: 'smooth'})" title="Scroll Down">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+</body>
+</html>

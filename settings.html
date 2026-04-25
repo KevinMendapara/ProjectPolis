@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Settings - Project Polis</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="auth.js"></script>
+  <style>
+    .page-container { max-width: 800px; margin: 2rem auto; padding: 0 1.5rem; }
+    .settings-card { background: rgba(0,0,0,0.2); border: 1px solid var(--border-light); padding: 2rem; border-radius: var(--radius-lg); margin-top: 2rem; }
+    .setting-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-light); }
+    .setting-item:last-child { border-bottom: none; }
+    .setting-info h3 { color: var(--text-main); font-size: 1.1rem; }
+    .setting-info p { color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+    
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-light); transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(24px); }
+  </style>
+</head>
+<body style="background-image: none; background-color: var(--bg-body);">
+  <nav class="navbar glass-effect" id="navbar">
+    <div class="navbar-container">
+      <div class="brand">
+        <div class="brand-logo">P</div>
+        <span class="brand-title">Project Polis</span>
+      </div>
+      <div class="nav-links" style="display: flex; gap: 1.5rem; align-items: center; margin-left: 2rem; margin-right: auto;">
+        <a href="index.html" class="nav-link">Map</a>
+        <a href="dashboard.html" class="nav-link">Analytics</a>
+        <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+        <a href="settings.html" class="nav-link active">Settings</a>
+      </div>
+      <div class="auth-wrapper" id="auth-wrapper" style="display: flex; gap: 0.75rem; align-items: center; margin-left: 1rem;"></div>
+    </div>
+  </nav>
+
+  <main class="page-container">
+    <h1 style="color: var(--text-main); font-size: 2rem;">Preferences</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Manage your application settings and theme.</p>
+    
+    <div class="settings-card glass-effect">
+      <div class="setting-item">
+        <div class="setting-info">
+          <h3>Light Mode</h3>
+          <p>Switch to a brighter application theme.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <h3>Push Notifications</h3>
+          <p>Get notified when your reported issues are resolved.</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <h3>Clear Local Data</h3>
+          <p>Erase all reported issues stored in your browser.</p>
+        </div>
+        <button class="btn-secondary" onclick="clearData()" style="color: var(--cat-safety); border-color: var(--cat-safety);">Clear Data</button>
+      </div>
+    </div>
+  </main>
+  
+  <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    
+    // Init theme
+    if (localStorage.getItem('polis_theme') === 'light') {
+      document.body.classList.add('light-theme');
+      themeToggle.checked = true;
+    }
+    
+    // Handle toggle
+    themeToggle.addEventListener('change', (e) => {
+      if(e.target.checked) {
+        document.body.classList.add('light-theme');
+        localStorage.setItem('polis_theme', 'light');
+      } else {
+        document.body.classList.remove('light-theme');
+        localStorage.setItem('polis_theme', 'dark');
+      }
+    });
+    
+    function clearData() {
+      if(confirm('Are you sure you want to delete all civic issues from local storage?')) {
+        localStorage.removeItem('polis_state');
+        alert('Data cleared! Return to Map to see default state.');
+      }
+    }
+  </script>
+  
+  <button class="global-scroll-btn" onclick="window.scrollBy({top: 500, behavior: 'smooth'})" title="Scroll Down">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+</body>
+</html>
